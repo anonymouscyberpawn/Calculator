@@ -74,7 +74,7 @@
                   <Font name="Agency FB" size="45.0" />
                </font>
             </Button>
-            <Button mnemonicParsing="false" onAction="#addNumber" prefHeight="153.0" prefWidth="225.0" text="." GridPane.rowIndex="3">
+            <Button mnemonicParsing="false" onAction="#addDecimal" prefHeight="153.0" prefWidth="225.0" text="." GridPane.rowIndex="3">
                <font>
                   <Font name="Agency FB" size="45.0" />
                </font>

@@ -4,12 +4,11 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.input.MouseEvent;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.Stack;
 
 public class HelloController implements Initializable {
     @FXML
@@ -18,83 +17,176 @@ public class HelloController implements Initializable {
     @FXML
     private TextField solution;
 
-    String op = "";
-    Double number1;
-    Double number2;
-
     public void addNumber(ActionEvent event) {
         String value = ((Button)event.getSource()).getText();
         myTextField.setText(myTextField.getText() + value);
+        calculateLive();
     }
 
     public void operation(ActionEvent event) {
-        String operate = ((Button)event.getSource()).getText();
-        if(!operate.equals("=")){
+        String operator = ((Button) event.getSource()).getText();
+        if (operator.equals("=")) {
 
-            if(!op.equals("")){
-                return;
-            }
-            op = operate;
-            number1 = Double.parseDouble(myTextField.getText());
-            myTextField.setText(myTextField.getText() + operate);
+            calculateLive();
 
+            myTextField.clear();
+            return;
         }
-        else{
-
-            if(op.equals("")){
-                return;
-
-            }
-            String expression = myTextField.getText();
-
-            String secondPart = expression.substring(expression.indexOf(op) + 1);
-
-            number2 = Double.parseDouble(secondPart);
-            calculate(number1, number2, op);
-            op = "";
-
+        String currentText = myTextField.getText();
+        if (currentText.isEmpty()) {
+            return;
         }
+        char lastChar = currentText.charAt(currentText.length() - 1);
+
+        if (lastChar == '+' ||
+                lastChar == '-' ||
+                lastChar == '*' ||
+                lastChar == '/') {
+            return;
+        }
+        myTextField.setText(currentText + operator);
     }
 
-    public void calculate (double n1, double n2, String op) {
-        switch (op) {
-
-            case "+" : solution.setText(String.valueOf(n1 + n2));
-                break;
-            case "-" : solution.setText(String.valueOf(n1 - n2));
-                break;
-            case "*" : solution.setText(String.valueOf(n1 * n2));
-                break;
-            case "/" :
-                if (n2 == 0){
-                    solution.setText("can't divide by zero");
-                    return;
-                }
-                solution.setText(String.valueOf(n1 / n2));
-                break;
-
-
-        }
-    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
     }
 
+
+    public void calculateLive() {
+        try{
+            String expression = myTextField.getText();
+            if(expression.isEmpty()){
+                solution.clear();
+                return;
+            }
+
+            char lastChar = expression.charAt(expression.length() - 1);
+
+            if(lastChar == '+' ||
+                lastChar == '-' ||
+                lastChar == '*' ||
+                lastChar == '/'){
+                return;
+            }
+            double result = evaluateExpression(expression);
+
+            if(result == (long) result){
+                solution.setText(String.valueOf((long)result));
+            }
+            else{
+                solution.setText(String.valueOf(result));
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+            solution.setText("Error");
+        }
+    }
+
+    private double evaluateExpression(String expression){
+        expression = expression.replaceAll("\\s+", "");
+        Stack<Double> numbers = new Stack<>();
+        Stack<Character> operators = new Stack<>();
+
+        int i = 0;
+
+        while(i < expression.length()){
+            char c = expression.charAt(i);
+            if(Character.isDigit(c) || c == '.'){
+                StringBuilder number = new StringBuilder();
+                while(i < expression.length() &&
+                        (Character.isDigit(expression.charAt(i)) || expression.charAt(i) == '.')){
+                    number.append(expression.charAt(i));
+                    i++;
+                }
+                numbers.push(Double.parseDouble(number.toString()));
+                continue;
+            }
+            if(c == '+' || c == '-' || c == '*' || c == '/'){
+                while(!operators.isEmpty() && precedence(operators.peek()) >= precedence(c)){
+                    performOperation(numbers, operators.pop());
+                }
+                operators.push(c);
+            }
+            i++;
+        }
+        while(!operators.isEmpty()){
+            performOperation(numbers, operators.pop());
+        }
+        return numbers.pop();
+    }
+    private int precedence(char operator){
+        switch (operator){
+            case '+':
+            case '-':
+                return 1;
+
+            case '*':
+            case '/':
+                return 2;
+            default:
+                return 0;
+        }
+    }
+    private void performOperation(Stack<Double> numbers, char operator){
+        double b = numbers.pop();
+        double a = numbers.pop();
+
+        switch(operator){
+            case '+':
+                numbers.push(a+b);
+                break;
+
+            case '-':
+                numbers.push(a-b);
+                break;
+            case '*':
+                numbers.push(a*b);
+                break;
+            case '/':
+                if (b == 0){
+                    throw new ArithmeticException("Division by zero");
+                }
+                numbers.push(a/b);
+                break;
+        }
+    }
+
+    public void addDecimal(ActionEvent event){
+        String text = myTextField.getText();
+        if(text.isEmpty()){
+            myTextField.setText("0.");
+            return;
+        }
+        int lastOperator = Math.max(Math.max(text.lastIndexOf('+'), text.lastIndexOf('-')),
+                Math.max(text.lastIndexOf('*'), text.lastIndexOf('/')));
+
+        String currentNumber = text.substring(lastOperator + 1);
+        if(!currentNumber.contains(".")){
+            myTextField.setText(text + ".");
+            calculateLive();
+        }
+    }
+
+
     public void clear(ActionEvent event){
 
-        myTextField.setText("");
+        myTextField.clear();
+        solution.clear();
 
     }
 
     public void delete(ActionEvent event){
 
         String string = myTextField.getText();
-        myTextField.setText("");
-        for(int i=0;i<string.length()-1;i++){
-            myTextField.setText(myTextField.getText()+string.charAt(i));
-        }
+       if(string.isEmpty()){
+           return;
+       }
+       myTextField.setText(string.substring(0, string.length() - 1));
+       calculateLive();
 
     }
+
 }
